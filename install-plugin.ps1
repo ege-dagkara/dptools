@@ -10,7 +10,7 @@ param(
 ## Configure this
 $Host.UI.RawUI.WindowTitle = "dPrime plugin installer | .gg/GqzHUKFzH8"
 $name = "dprime" # automatic first letter uppercase included
-$link = "https://github.com/ege-dagkara/dptools/blob/main/dp-plugin-intsall.zip"
+$link = "https://dptools.vercel.app/dp-plugin-intsall.zip"
 $milleniumTimer = 5 # in seconds for auto-installation
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
