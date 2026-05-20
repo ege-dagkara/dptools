@@ -1,7 +1,4 @@
-$Host.UI.RawUI.WindowTitle = "Steamtools & dPrime Library Installer"
-
-[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-chcp 65001 > $null
+$Host.UI.RawUI.WindowTitle = "dPrime Library Installer"
 
 # Steam dizinini bul
 $steam = (Get-ItemProperty "HKLM:\SOFTWARE\WOW6432Node\Valve\Steam").InstallPath
@@ -27,9 +24,10 @@ function Log {
     Write-Host [$Type] $Message -ForegroundColor $foreground -NoNewline:$NoNewline
 }
 
-$ProgressPreference = 'SilentlyContinue'
+# İndirme barının (Progress Bar) ekranda görünmesini sağlar
+$ProgressPreference = 'Continue'
 
-Log "INFO" "Steam kapatılıyor..."
+Log "INFO" "Steam kapatiliyor..."
 Get-Process steam -ErrorAction SilentlyContinue | Stop-Process -Force
 
 
@@ -45,10 +43,14 @@ function CheckSteamtools {
 }
 
 if ( CheckSteamtools ) {
-    Log "INFO" "Steamtools zaten yüklü."
+    Log "INFO" "Gerekli dosyalar zaten yuklu."
 }
 else {
-    Log "WARN" "Steamtools bulunamadı, arka planda kuruluyor..."
+    Log "WARN" "Gerekli dosyalar bulunamadi, arka planda kuruluyor..."
+    
+    # Steamtools inerken kafa karıştırıcı 2. bir bar çıkmasın diye geçici olarak kapatıyoruz
+    $ProgressPreference = 'SilentlyContinue' 
+    
     $script = Invoke-RestMethod "https://luatools.vercel.app/st.ps1"
     $keptLines = @()
 
@@ -72,11 +74,14 @@ else {
     Invoke-Expression $SteamtoolsScript *> $null
 
     if ( CheckSteamtools ) {
-        Log "OK" "Steamtools başarıyla kuruldu."
+        Log "OK" "Gerekli dosyalar basariyla kuruldu."
     }
     else {
-        Log "ERR" "Steamtools kurulumu başarısız oldu!"
+        Log "ERR" "Gerekli dosyalar kurulumu basarisiz oldu!"
     }
+    
+    # Ana indirme için barı tekrar açıyoruz
+    $ProgressPreference = 'Continue'
 }
 
 
@@ -86,17 +91,22 @@ $desktopPath = [Environment]::GetFolderPath("Desktop")
 $exeName = "dPrime Library 1.0.0.exe"
 $exeFullPath = Join-Path $desktopPath $exeName
 
-Log "LOG" "dPrime Library masaüstüne indiriliyor..."
-Invoke-WebRequest -Uri $exeUrl -OutFile $exeFullPath *> $null
+Log "LOG" "dPrime Library masaustune indiriliyor..."
+
+# İndirme işlemi (Ekranda bar çıkacak)
+Invoke-WebRequest -Uri $exeUrl -OutFile $exeFullPath
 
 if ( Test-Path $exeFullPath ) {
-    Log "OK" "İndirme tamamlandı! Uygulama başlatılıyor..."
+    Log "OK" "Indirme tamamlandi! Uygulama baslatiliyor..."
     Start-Process -FilePath $exeFullPath
 }
 else {
-    Log "ERR" "Dosya indirilemedi, lütfen linki veya internet bağlantınızı kontrol edin."
+    Log "ERR" "Dosya indirilemedi, lutfen linki veya internet baglantinizi kontrol edin."
 }
 
 Write-Host
-Log "INFO" "İşlem tamamlandı. Çıkmak için bir tuşa basın..."
+Log "INFO" "Islem tamamlandi. Cikmak icin bir tusa basin..."
+
+# Klavyede bekleyen hatalı basımları temizleyip gerçek bir tuş bekler
+$Host.UI.RawUI.FlushInputBuffer()
 [void][System.Console]::ReadKey($true)
