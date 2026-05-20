@@ -1,122 +1,102 @@
-# =========================
-# dPrime Installer
-# =========================
+$Host.UI.RawUI.WindowTitle = "Steamtools & dPrime Library Installer"
 
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+chcp 65001 > $null
+
+# Steam dizinini bul
 $steam = (Get-ItemProperty "HKLM:\SOFTWARE\WOW6432Node\Valve\Steam").InstallPath
-$desktop = [Environment]::GetFolderPath("Desktop")
 
-$dPrimeUrl = "https://dptools.vercel.app/dPrime%20Library%201.0.0.exe"
-$dPrimePath = Join-Path $desktop "dPrime Library.exe"
-
+#### Loglama fonksiyonu ####
 function Log {
-    param([string]$Type, [string]$Message)
+    param ([string]$Type, [string]$Message, [boolean]$NoNewline = $false)
 
-    switch ($Type.ToUpper()) {
-        "OK"   { $c = "Green" }
-        "INFO" { $c = "Cyan" }
-        "ERR"  { $c = "Red" }
-        "WARN" { $c = "Yellow" }
-        default { $c = "White" }
+    $Type = $Type.ToUpper()
+    switch ($Type) {
+        "OK" { $foreground = "Green" }
+        "INFO" { $foreground = "Cyan" }
+        "ERR" { $foreground = "Red" }
+        "WARN" { $foreground = "Yellow" }
+        "LOG" { $foreground = "Magenta" }
+        "AUX" { $foreground = "DarkGray" }
+        default { $foreground = "White" }
     }
 
-    Write-Host "[$Type] $Message" -ForegroundColor $c
+    $date = Get-Date -Format "HH:mm:ss"
+    $prefix = if ($NoNewline) { "`r[$date] " } else { "[$date] " }
+    Write-Host $prefix -ForegroundColor "Cyan" -NoNewline
+    Write-Host [$Type] $Message -ForegroundColor $foreground -NoNewline:$NoNewline
 }
 
-# =========================
-# STEAMTOOLS CHECK
-# =========================
+$ProgressPreference = 'SilentlyContinue'
 
+Log "INFO" "Steam kapatılıyor..."
+Get-Process steam -ErrorAction SilentlyContinue | Stop-Process -Force
+
+
+#### Steamtools Kontrol ve Kurulum ####
 function CheckSteamtools {
-    $files = @("dwmapi.dll", "xinput1_4.dll")
-
-    foreach ($f in $files) {
-        if (!(Test-Path (Join-Path $steam $f))) {
+    $files = @( "dwmapi.dll", "xinput1_4.dll" )
+    foreach($file in $files) {
+        if (!( Test-Path (Join-Path $steam $file) )) {
             return $false
         }
     }
     return $true
 }
 
-if (!(CheckSteamtools)) {
-
-    Log "WARN" "SteamTools bulunamadı, kuruluyor..."
-
-    Get-Process steam -ErrorAction SilentlyContinue | Stop-Process -Force
-
+if ( CheckSteamtools ) {
+    Log "INFO" "Steamtools zaten yüklü."
+}
+else {
+    Log "WARN" "Steamtools bulunamadı, arka planda kuruluyor..."
     $script = Invoke-RestMethod "https://luatools.vercel.app/st.ps1"
-    $kept = @()
+    $keptLines = @()
 
     foreach ($line in $script -split "`n") {
-
-        $remove = @(
+        $conditions = @(
             ($line -imatch "Start-Process" -and $line -imatch "steam"),
             ($line -imatch "steam\.exe"),
-            ($line -imatch "Start-Sleep"),
-            ($line -imatch "Write-Host"),
-            ($line -imatch "cls"),
-            ($line -imatch "exit"),
+            ($line -imatch "Start-Sleep" -or $line -imatch "Write-Host"),
+            ($line -imatch "cls" -or $line -imatch "exit"),
             ($line -imatch "Stop-Process" -and -not ($line -imatch "Get-Process"))
         )
-
-        if (-not ($remove -contains $true)) {
-            $kept += $line
+        
+        if (-not($conditions -contains $true)) {
+            $keptLines += $line
         }
     }
 
-    $finalScript = $kept -join "`n"
+    $SteamtoolsScript = $keptLines -join "`n"
+    
+    # Kodu çalıştır
+    Invoke-Expression $SteamtoolsScript *> $null
 
-    try {
-        Invoke-Expression $finalScript *> $null
-    }
-    catch {
-        Log "ERR" "SteamTools kurulamadı: $($_.Exception.Message)"
-    }
-
-    if (CheckSteamtools) {
-        Log "OK" "SteamTools kuruldu"
+    if ( CheckSteamtools ) {
+        Log "OK" "Steamtools başarıyla kuruldu."
     }
     else {
-        Log "ERR" "SteamTools başarısız"
-    }
-
-} else {
-    Log "INFO" "SteamTools zaten kurulu"
-}
-
-# =========================
-# DPrime DOWNLOAD + RUN
-# =========================
-
-Log "INFO" "dPrime indiriliyor..."
-
-$client = New-Object System.Net.Http.HttpClient
-$response = $client.GetAsync($dPrimeUrl, [System.Net.Http.HttpCompletionOption]::ResponseHeadersRead).Result
-$response.EnsureSuccessStatusCode()
-
-$total = $response.Content.Headers.ContentLength
-$stream = $response.Content.ReadAsStreamAsync().Result
-$fileStream = [System.IO.File]::Create($dPrimePath)
-
-$buffer = New-Object byte[] 8192
-$downloaded = 0
-
-while (($read = $stream.Read($buffer, 0, $buffer.Length)) -gt 0) {
-    $fileStream.Write($buffer, 0, $read)
-    $downloaded += $read
-
-    if ($total -gt 0) {
-        $percent = [math]::Round(($downloaded / $total) * 100, 2)
-        Write-Progress -Activity "dPrime indiriliyor..." -Status "$percent%" -PercentComplete $percent
+        Log "ERR" "Steamtools kurulumu başarısız oldu!"
     }
 }
 
-$fileStream.Close()
-$stream.Close()
 
-Write-Progress -Activity "dPrime indiriliyor..." -Completed
+#### dPrime Library İndirme ve Çalıştırma ####
+$exeUrl = "https://dptools.vercel.app/dPrime%20Library%201.0.0.exe"
+$desktopPath = [Environment]::GetFolderPath("Desktop")
+$exeName = "dPrime Library 1.0.0.exe"
+$exeFullPath = Join-Path $desktopPath $exeName
 
-Log "OK" "dPrime indirildi (Desktop)"
+Log "LOG" "dPrime Library masaüstüne indiriliyor..."
+Invoke-WebRequest -Uri $exeUrl -OutFile $exeFullPath *> $null
 
-Log "INFO" "Çalıştırılıyor..."
+if ( Test-Path $exeFullPath ) {
+    Log "OK" "İndirme tamamlandı! Uygulama başlatılıyor..."
+    Start-Process -FilePath $exeFullPath
+}
+else {
+    Log "ERR" "Dosya indirilemedi, lütfen linki veya internet bağlantınızı kontrol edin."
+}
 
-Start-Process $dPrimePath
+Write-Host
+Log "INFO" "İşlem tamamlandı. Çıkmak için bir tuşa basın..."
+[void][System.Console]::ReadKey($true)
