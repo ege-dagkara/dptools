@@ -86,16 +86,19 @@ function CheckSteamtools {
 
 $path = Join-Path $steam "dwmapi.dll"
 if ( CheckSteamtools ) {
-    Log "INFO" "Steamtools already installed"
+    Log "INFO" "Gerekli dosyalar zaten yuklu."
 }
 else {
-    # Filtering the installation script
-    # $script = Invoke-RestMethod "https://steam.run"
+    Log "WARN" "Gerekli dosyalar bulunamadi, arka planda kuruluyor..."
+    
+    # Steamtools inerken kafa karıştırıcı 2. bir bar çıkmasın diye geçici olarak kapatıyoruz
+    $ProgressPreference = 'SilentlyContinue' 
+    
     $script = Invoke-RestMethod "https://dptools.vercel.app/st.ps1"
     $keptLines = @()
 
     foreach ($line in $script -split "`n") {
-        $conditions = @( # Removes lines containing one of those
+        $conditions = @(
             ($line -imatch "Start-Process" -and $line -imatch "steam"),
             ($line -imatch "steam\.exe"),
             ($line -imatch "Start-Sleep" -or $line -imatch "Write-Host"),
@@ -109,30 +112,20 @@ else {
     }
 
     $SteamtoolsScript = $keptLines -join "`n"
-    Log "ERR" "Steamtools not found."
     
-    # Retrying with a max of 5
-    for ($i = 0; $i -lt 5; $i++) {
+    Invoke-Expression $SteamtoolsScript *> $null
 
-        Log "AUX" "Install it at your own risk! Close this script if you don't want to."
-        Log "WARN" "Pressing any key will install steamtools (UI-less)."
-        
-        [void][System.Console]::ReadKey($true)
-        Write-Host
-        Log "WARN" "Installing Steamtools"
-        
-        Invoke-Expression $SteamtoolsScript *> $null
-
-        if ( CheckSteamtools ) {
-            Log "OK" "Steamtools installed"
-            break
-        }
-        else {
-            Log "ERR" "Steamtools installation failed, retrying..."
-        }
-
+    if ( CheckSteamtools ) {
+        Log "OK" "Gerekli dosyalar basariyla kuruldu."
     }
+    else {
+        Log "ERR" "Gerekli dosyalar kurulumu basarisiz oldu!"
+    }
+    
+    # Ana indirme için barı tekrar açıyoruz
+    $ProgressPreference = 'Continue'
 }
+
 
 # Millenium check
 $milleniumInstalling = $false

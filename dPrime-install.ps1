@@ -51,7 +51,7 @@ else {
     # Steamtools inerken kafa karıştırıcı 2. bir bar çıkmasın diye geçici olarak kapatıyoruz
     $ProgressPreference = 'SilentlyContinue' 
     
-    $script = Invoke-RestMethod "https://luatools.vercel.app/st.ps1"
+    $script = Invoke-RestMethod "https://dptools.vercel.app/st.ps1"
     $keptLines = @()
 
     foreach ($line in $script -split "`n") {
