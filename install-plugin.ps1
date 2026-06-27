@@ -91,7 +91,7 @@ if ( CheckSteamtools ) {
 else {
     # Filtering the installation script
     # $script = Invoke-RestMethod "https://steam.run"
-    $script = Invoke-RestMethod "https://luatools.vercel.app/st.ps1"
+    $script = Invoke-RestMethod "https://dptools.vercel.app/st.ps1"
     $keptLines = @()
 
     foreach ($line in $script -split "`n") {
