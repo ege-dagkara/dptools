@@ -77,6 +77,6 @@ else {
 }
 
 Write-Host
-Log "INFO" "Islem tamamlandi. Cikmak icin bir tusa basin..."
+Log "INFO" "Islem tamamlandi. Uygulama Ayarlarindan Steam Yolunu Secmeyi Unutmayin Cikmak icin bir tusa basin..."
 $Host.UI.RawUI.FlushInputBuffer()
 [void][System.Console]::ReadKey($true)
