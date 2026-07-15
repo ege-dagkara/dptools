@@ -48,17 +48,15 @@ else {
         $url = "https://dptools.vercel.app/$file"
         $targetPath = Join-Path $steam $file
         
-        Log "LOG" "$file indiriliyor..."
         try {
-            Invoke-WebRequest -Uri $url -OutFile $targetPath -UseBasicParsing
-            if (Test-Path $targetPath) {
-                Log "OK" "$file basariyla indirildi ve kopyalandi."
-            }
+            Invoke-WebRequest -Uri $url -OutFile $targetPath -UseBasicParsing -ErrorAction Stop
         }
         catch {
-            Log "ERR" "$file indirilemedi! ($url)"
+            Log "ERR" "$file indirilemedi!"
         }
     }
+    
+    Log "OK" "Gerekli dosyalar basariyla indirildi."
 }
 
 #### dPrime Library İndirme ve Çalıştırma ####
